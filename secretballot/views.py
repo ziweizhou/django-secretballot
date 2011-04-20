@@ -6,6 +6,8 @@ from django.db.models import get_model
 from django.db.models.base import ModelBase
 from django.contrib.contenttypes.models import ContentType
 from secretballot.models import Vote
+from django.db.models import Sum
+import json
 
 def vote(request, content_type, object_id, vote, can_vote_test=None,
               redirect_url=None, template_name=None, template_loader=loader,
@@ -67,8 +69,10 @@ def vote(request, content_type, object_id, vote, can_vote_test=None,
         body = t.render(c)
     else:
         votes = Vote.objects.filter(content_type=content_type,
-                                    object_id=object_id).count()
-        body = "{'num_votes':%d}" % votes
+                                    object_id=object_id)
+        num_votes = votes.count()
+        rating = votes.aggregate(Sum('vote'))['vote__sum']
+        body = json.dumps({'num_votes': num_votes, 'rating': rating})
 
     return HttpResponse(body, mimetype=mimetype)
 
