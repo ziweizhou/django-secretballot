@@ -11,7 +11,7 @@ from django.contrib.contenttypes import generic
 def limit_total_votes(num):
     from secretballot.models import Vote
     def total_vote_limiter(request, content_type, object_id, vote):
-        return Vote.objects.filter(content_type=content_type, 
+        return Vote.objects.filter(content_type=content_type,
                                token=request.secretballot_token).count() < num
     return total_vote_limiter
 
@@ -38,6 +38,9 @@ def enable_voting_on(cls, manager_name='objects',
         self.votes.filter(token=token).delete()
 
     def get_total(self):
+        if not hasattr(self, upvotes_name) or not hasattr(self, downvotes_name):
+            from django.db.models import Sum
+            return getattr(self, votes_name).aggregate(Sum('vote'))['vote__sum']
         return getattr(self, upvotes_name) - getattr(self, downvotes_name)
 
     if base_manager is None:
