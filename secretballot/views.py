@@ -13,11 +13,9 @@ def vote(request, content_type, object_id, vote, can_vote_test=None,
               redirect_url=None, template_name=None, template_loader=loader,
               extra_context=None, context_processors=None, mimetype=None):
 
-    # get the token from a SecretBallotMiddleware
-    if not hasattr(request, 'secretballot_token'):
-        raise ImproperlyConfigured('To use secretballot a SecretBallotMiddleware must be installed. (see secretballot/middleware.py)')
-    token = request.secretballot_token
-
+    user = request.user
+    if not user.is_active:
+        raise HttpResponseForbidden('Inactive users are not permitted to vote.')
     if isinstance(content_type, ContentType):
         pass
     elif isinstance(content_type, ModelBase):
@@ -41,14 +39,14 @@ def vote(request, content_type, object_id, vote, can_vote_test=None,
                 return HttpResponseForbidden("vote was forbidden")
 
         vobj,new = Vote.objects.get_or_create(content_type=content_type,
-                                              object_id=object_id, token=token,
+                                              object_id=object_id, user=user,
                                               defaults={'vote':vote})
         if not new:
             vobj.vote = vote
             vobj.save()
     else:
         Vote.objects.filter(content_type=content_type,
-                            object_id=object_id, token=token).delete()
+                            object_id=object_id, user=user).delete()
 
     # build the response
     if redirect_url:
