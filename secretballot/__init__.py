@@ -27,15 +27,15 @@ def enable_voting_on(cls, manager_name='objects',
     from secretballot.models import Vote
     VOTE_TABLE = Vote._meta.db_table
 
-    def add_vote(self, token, vote):
-        voteobj, created = self.votes.get_or_create(token=token,
+    def add_vote(self, user, vote):
+        voteobj, created = self.votes.get_or_create(user=user,
             defaults={'vote':vote, 'content_object':self})
         if not created:
             voteobj.vote = vote
             voteobj.save()
 
-    def remove_vote(self, token):
-        self.votes.filter(token=token).delete()
+    def remove_vote(self, user):
+        self.votes.filter(user=user).delete()
 
     def get_total(self):
         if not hasattr(self, upvotes_name) or not hasattr(self, downvotes_name):
@@ -61,18 +61,18 @@ def enable_voting_on(cls, manager_name='objects',
                 select={upvotes_name: upvote_query,
                         downvotes_name: downvote_query})
 
-        def from_token(self, token):
+        def from_user(self, user):
             db_table = self.model._meta.db_table
             pk_name = self.model._meta.pk.attname
             content_type = ContentType.objects.get_for_model(self.model).id
-            query = '(SELECT vote from %s WHERE token=%%s AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
+            query = '(SELECT vote from %s WHERE user=%%s AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
             return self.get_query_set().extra(select={'user_vote': query},
-                                              select_params=(token,))
+                                              select_params=(user,))
 
         def from_request(self, request):
-            if not hasattr(request, 'secretballot_token'):
-                raise ImproperlyConfigured('To use secretballot a SecretBallotMiddleware must be installed. (see secretballot/middleware.py)')
-            return self.from_token(request.secretballot_token)
+            if not hasattr(request, 'user'):
+                raise ImproperlyConfigured('To use secretballot a user must be authenticated')
+            return self.from_user(request.user)
 
 
     cls.add_to_class(manager_name, VotableManager())
