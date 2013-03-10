@@ -8,6 +8,7 @@ from django.db.models import Manager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
+import time
 def limit_total_votes(num):
     from secretballot.models import Vote
     def total_vote_limiter(request, content_type, object_id, vote):
@@ -32,7 +33,9 @@ def enable_voting_on(cls, manager_name='objects',
             defaults={'vote':vote, 'content_object':self})
         if not created:
             voteobj.vote = vote
-            voteobj.save()
+            
+        voteobj.timestamp = int(time.time())
+        voteobj.save()
 
     def remove_vote(self, user):
         self.votes.filter(user=user).delete()
