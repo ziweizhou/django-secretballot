@@ -12,7 +12,7 @@ def limit_total_votes(num):
     from secretballot.models import Vote
     def total_vote_limiter(request, content_type, object_id, vote):
         return Vote.objects.filter(content_type=content_type,
-                               token=request.secretballot_token).count() < num
+                               user=request.user).count() < num
     return total_vote_limiter
 
 
