@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.conf import settings
+import time
 try:
     from django.contrib.auth import get_user_model
 except ImportError:
@@ -24,7 +25,7 @@ class Vote(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-
+    timestamp = models.BigIntegerField(default=int(time.time()))
     class Meta:
         unique_together = (('user', 'content_type', 'object_id'),)
 
