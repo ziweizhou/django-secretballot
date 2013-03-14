@@ -29,7 +29,7 @@ def enable_voting_on(cls, manager_name='objects',
     VOTE_TABLE = Vote._meta.db_table
 
     def add_vote(self, user, vote):
-        voteobj, created = self.votes.get_or_create(user=user,
+        voteobj, created = getattr(self, votes_name).get_or_create(user=user,
             defaults={'vote':vote, 'content_object':self})
         if not created:
             voteobj.vote = vote
@@ -38,7 +38,7 @@ def enable_voting_on(cls, manager_name='objects',
         voteobj.save()
 
     def remove_vote(self, user):
-        self.votes.filter(user=user).delete()
+        getattr(self, votes_name).filter(user=user).delete()
 
     def get_total(self):
         if not hasattr(self, upvotes_name) or not hasattr(self, downvotes_name):
@@ -54,22 +54,23 @@ def enable_voting_on(cls, manager_name='objects',
 
     class VotableManager(base_manager):
 
-        def get_query_set(self):
+        def get_queryset(self):
             db_table = self.model._meta.db_table
             pk_name = self.model._meta.pk.attname
             content_type = ContentType.objects.get_for_model(self.model).id
             downvote_query = '(SELECT COUNT(*) from %s WHERE vote=-1 AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
             upvote_query = '(SELECT COUNT(*) from %s WHERE vote=1 AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
-            return super(VotableManager, self).get_query_set().extra(
-                select={upvotes_name: upvote_query,
-                        downvotes_name: downvote_query})
-
+            return super(VotableManager, self).get_queryset()
+            # return super(VotableManager, self).get_queryset().extra(
+            #     select={upvotes_name: upvote_query,
+            #             downvotes_name: downvote_query})
+    
         def from_user(self, user):
             db_table = self.model._meta.db_table
             pk_name = self.model._meta.pk.attname
             content_type = ContentType.objects.get_for_model(self.model).id
             query = '(SELECT vote from %s WHERE user=%%s AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
-            return self.get_query_set().extra(select={'user_vote': query},
+            return self.get_queryset().extra(select={'user_vote': query},
                                               select_params=(user,))
 
         def from_request(self, request):
