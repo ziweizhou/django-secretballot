@@ -3,19 +3,17 @@ __version__ = "0.2.3"
 __copyright__ = "Copyright (c) 2009 Sunlight Labs"
 __license__ = "BSD"
 
-from django.core.exceptions import ImproperlyConfigured
-from django.db.models import Manager
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
-
 import time
+from secretballot.managers import VotableManager
+
+
 def limit_total_votes(num):
     from secretballot.models import Vote
     def total_vote_limiter(request, content_type, object_id, vote):
         return Vote.objects.filter(content_type=content_type,
                                user=request.user).count() < num
     return total_vote_limiter
-
 
 def enable_voting_on(cls, manager_name='objects',
                     votes_name='votes',
@@ -30,7 +28,7 @@ def enable_voting_on(cls, manager_name='objects',
 
     def add_vote(self, user, vote):
         voteobj, created = getattr(self, votes_name).get_or_create(user=user,
-            defaults={'vote':vote, 'content_object':self})
+            defaults={'vote':vote, 'content_object':self,'votes_name':votes_name})
         if not created:
             voteobj.vote = vote
             
@@ -38,49 +36,19 @@ def enable_voting_on(cls, manager_name='objects',
         voteobj.save()
 
     def remove_vote(self, user):
-        getattr(self, votes_name).filter(user=user).delete()
+        getattr(self, votes_name).filter(user=user,votes_name=votes_name).delete()
 
     def get_total(self):
         if not hasattr(self, upvotes_name) or not hasattr(self, downvotes_name):
             from django.db.models import Sum
-            return getattr(self, votes_name).aggregate(Sum('vote'))['vote__sum']
+            return getattr(self, votes_name).filter(votes_name=votes_name).aggregate(Sum('vote'))['vote__sum']
         return getattr(self, upvotes_name) - getattr(self, downvotes_name)
 
-    if base_manager is None:
-        if hasattr(cls, manager_name):
-            base_manager = getattr(cls, manager_name).__class__
-        else:
-            base_manager = Manager
-
-    class VotableManager(base_manager):
-
-        def get_queryset(self):
-            db_table = self.model._meta.db_table
-            pk_name = self.model._meta.pk.attname
-            content_type = ContentType.objects.get_for_model(self.model).id
-            downvote_query = '(SELECT COUNT(*) from %s WHERE vote=-1 AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
-            upvote_query = '(SELECT COUNT(*) from %s WHERE vote=1 AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
-            return super(VotableManager, self).get_queryset()
-            # return super(VotableManager, self).get_queryset().extra(
-            #     select={upvotes_name: upvote_query,
-            #             downvotes_name: downvote_query})
     
-        def from_user(self, user):
-            db_table = self.model._meta.db_table
-            pk_name = self.model._meta.pk.attname
-            content_type = ContentType.objects.get_for_model(self.model).id
-            query = '(SELECT vote from %s WHERE user=%%s AND object_id=%s.%s AND content_type_id=%s)' % (VOTE_TABLE, db_table, pk_name, content_type)
-            return self.get_queryset().extra(select={'user_vote': query},
-                                              select_params=(user,))
-
-        def from_request(self, request):
-            if not hasattr(request, 'user'):
-                raise ImproperlyConfigured('To use secretballot a user must be authenticated')
-            return self.from_user(request.user)
-
 
     cls.add_to_class(manager_name, VotableManager())
     cls.add_to_class(votes_name, generic.GenericRelation(Vote))
-    cls.add_to_class(total_name, property(get_total))
+    # do i need total_name? maybe not?
+    # cls.add_to_class(total_name, property(get_total)) 
     cls.add_to_class(add_vote_name, add_vote)
     cls.add_to_class(remove_vote_name, remove_vote)

@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.conf import settings
 import time
+from secretballot.managers import VotableManager
 try:
     from django.contrib.auth import get_user_model
 except ImportError:
@@ -23,9 +24,11 @@ class Vote(models.Model):
 
     # generic foreign key to the model being voted upon
     content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
+    object_id = models.PositiveIntegerField(db_index=True)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     timestamp = models.BigIntegerField(default=int(time.time()))
+    votes_name = models.CharField(max_length=190,null=False,default="",db_index=True)
+    objects = VotableManager()
     class Meta:
         unique_together = (('user', 'content_type', 'object_id'),)
 

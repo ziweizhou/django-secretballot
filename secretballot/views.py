@@ -73,6 +73,6 @@ def vote(request, content_type, object_id, vote, can_vote_test=None,
                                     object_id=object_id)
         num_votes = votes.count()
         rating = votes.aggregate(Sum('vote'))['vote__sum']
-        body = json.dumps({'num_votes': num_votes, 'rating': rating})
+        body = json.dumps({"num_votes": num_votes, "rating": rating})
 
     return HttpResponse(body, mimetype=mimetype)
