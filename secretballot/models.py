@@ -30,7 +30,7 @@ class Vote(models.Model):
     votes_name = models.CharField(max_length=190,null=False,default="",db_index=True)
     objects = VotableManager()
     class Meta:
-        unique_together = (('user', 'content_type', 'object_id'),)
+        unique_together = (('user', 'content_type', 'object_id','votes_name'),)
 
     def __unicode__(self):
         return '%s from %s on %s' % (self.get_vote_display(), self.user,

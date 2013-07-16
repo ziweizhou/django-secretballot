@@ -48,7 +48,7 @@ class VotableManager(models.Manager):
         QuerySet for all likes/bookmarks/votes currently for a particular user
         """
         ct = ContentType.objects.get_for_model(model)
-        return self.get_queryset().filter(user=user,content_type=ct,votes_name=votes_name)
+        return self.get_queryset().filter(user=user,content_type=ct,votes_name=votes_name).prefetch_related('user')
 
     def total_count(self,model,votes_name):
         return self.for_model(model,votes_name).count()

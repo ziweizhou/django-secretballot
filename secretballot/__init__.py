@@ -47,7 +47,7 @@ def enable_voting_on(cls, manager_name='objects',
     
 
     cls.add_to_class(manager_name, VotableManager())
-    cls.add_to_class(votes_name, generic.GenericRelation(Vote))
+    cls.add_to_class(votes_name, generic.GenericRelation(Vote, related_name="%s_%s" % (cls._meta.app_label,votes_name)))
     # do i need total_name? maybe not?
     # cls.add_to_class(total_name, property(get_total)) 
     cls.add_to_class(add_vote_name, add_vote)
