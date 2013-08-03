@@ -27,7 +27,7 @@ def enable_voting_on(cls, manager_name='objects',
     VOTE_TABLE = Vote._meta.db_table
 
     def add_vote(self, user, vote):
-        voteobj, created = getattr(self, votes_name).get_or_create(user=user,
+        voteobj, created = getattr(self, votes_name).get_or_create(user=user,vote=vote,votes_name=votes_name,
             defaults={'vote':vote, 'content_object':self,'votes_name':votes_name})
         if not created:
             voteobj.vote = vote
