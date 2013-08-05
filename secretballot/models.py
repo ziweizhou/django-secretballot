@@ -38,7 +38,8 @@ class Vote(models.Model):
 
 
     def summary(self):
-        summary_dict=dict((name,getattr(self, name)) for name in ['timestamp']) 
+        summary_dict=dict()
+        summary_dict['votetime']=self.timestamp
         try:
             summary_dict.update(self.content_object.vote_summary())
         except AttributeError:
