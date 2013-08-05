@@ -35,3 +35,12 @@ class Vote(models.Model):
     def __unicode__(self):
         return '%s from %s on %s' % (self.get_vote_display(), self.user,
                                      self.content_object)
+
+
+    def summary(self):
+        summary_dict=dict((name,getattr(self, name)) for name in ['timestamp']) 
+        try:
+            summary_dict.update(self.content_object.vote_summary())
+        except AttributeError:
+            pass
+        return summary_dict
